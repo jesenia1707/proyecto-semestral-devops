@@ -24,11 +24,11 @@ jobs:
           java-version: '17'
 
       - name: Compilar Ventas
-        working-directory: ./back-Ventas_SpringBoot
+        working-directory: ./back-Ventas_SpringBoot/Springboot-API-REST
         run: mvn clean package -DskipTests
 
       - name: Compilar Despachos
-        working-directory: ./back-Despachos_SpringBoot
+        working-directory: ./back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
         run: mvn clean package -DskipTests
 
       - name: Configurar credenciales AWS
@@ -39,17 +39,16 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login Amazon ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Construir imagen Ventas
         run: |
-          docker build -t ventas-service:latest ./back-Ventas_SpringBoot
+          docker build -t ventas-service:latest ./back-Ventas_SpringBoot/Springboot-API-REST
           docker tag ventas-service:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ventas-service:latest
 
       - name: Construir imagen Despachos
         run: |
-          docker build -t despachos-service:latest ./back-Despachos_SpringBoot
+          docker build -t despachos-service:latest ./back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
           docker tag despachos-service:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/despachos-service:latest
 
       - name: Publicar imagen Ventas
@@ -59,4 +58,3 @@ jobs:
       - name: Publicar imagen Despachos
         run: |
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/despachos-service:latest
-        
