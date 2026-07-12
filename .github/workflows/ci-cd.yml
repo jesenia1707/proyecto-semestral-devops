@@ -5,58 +5,107 @@ on:
     branches:
       - main
 
+env:
+  AWS_REGION: us-east-1
+  AWS_ACCOUNT_ID: 934438538002
+
 jobs:
-  build-and-push:
+  build-push:
     runs-on: ubuntu-latest
 
-    env:
-      AWS_REGION: us-east-1
-      AWS_ACCOUNT_ID: 934438538002
-
     steps:
-      - name: Checkout del código
+      - name: Checkout
         uses: actions/checkout@v4
+
+      # ---------------- JAVA ----------------
 
       - name: Configurar Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
-      - name: Compilar Ventas
+      # ---------------- NODE ----------------
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # ---------------- BUILD FRONTEND ----------------
+
+      - name: Instalar dependencias Frontend
+        working-directory: ./front_despacho
+        run: npm install
+
+      - name: Build Frontend
+        working-directory: ./front_despacho
+        run: npm run build
+
+      # ---------------- BUILD BACKENDS ----------------
+
+      - name: Build Ventas
         working-directory: ./back-Ventas_SpringBoot/Springboot-API-REST
         run: mvn clean package -DskipTests
 
-      - name: Compilar Despachos
+      - name: Build Despachos
         working-directory: ./back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
         run: mvn clean package -DskipTests
 
-      - name: Configurar credenciales AWS
+      # ---------------- AWS ----------------
+
+      - name: Configurar AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: us-east-1
 
       - name: Login Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Construir imagen Ventas
-        run: |
-          docker build -t ventas-service:latest ./back-Ventas_SpringBoot/Springboot-API-REST
-          docker tag ventas-service:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ventas-service:latest
+      # ---------------- DOCKER FRONTEND ----------------
 
-      - name: Construir imagen Despachos
+      - name: Build Frontend Docker
         run: |
-          docker build -t despachos-service:latest ./back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
-          docker tag despachos-service:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/despachos-service:latest
+          docker build -t frontend-despacho:${{ github.sha }} ./front_despacho
+          docker tag frontend-despacho:${{ github.sha }} $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/frontend-despacho:${{ github.sha }}
+          docker tag frontend-despacho:${{ github.sha }} $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/frontend-despacho:latest
 
-      - name: Publicar imagen Ventas
+      # ---------------- DOCKER VENTAS ----------------
+
+      - name: Build Ventas Docker
         run: |
+          docker build -t ventas-service:${{ github.sha }} ./back-Ventas_SpringBoot/Springboot-API-REST
+          docker tag ventas-service:${{ github.sha }} $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ventas-service:${{ github.sha }}
+          docker tag ventas-service:${{ github.sha }} $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ventas-service:latest
+
+      # ---------------- DOCKER DESPACHOS ----------------
+
+      - name: Build Despachos Docker
+        run: |
+          docker build -t despachos-service:${{ github.sha }} ./back-Despachos_SpringBoot/Springboot-API-REST-DESPACHO
+          docker tag despachos-service:${{ github.sha }} $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/despachos-service:${{ github.sha }}
+          docker tag despachos-service:${{ github.sha }} $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/despachos-service:latest
+
+      # ---------------- PUSH FRONTEND ----------------
+
+      - name: Push Frontend
+        run: |
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/frontend-despacho:${{ github.sha }}
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/frontend-despacho:latest
+
+      # ---------------- PUSH VENTAS ----------------
+
+      - name: Push Ventas
+        run: |
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ventas-service:${{ github.sha }}
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ventas-service:latest
 
-      - name: Publicar imagen Despachos
+      # ---------------- PUSH DESPACHOS ----------------
+
+      - name: Push Despachos
         run: |
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/despachos-service:${{ github.sha }}
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/despachos-service:latest
-#
