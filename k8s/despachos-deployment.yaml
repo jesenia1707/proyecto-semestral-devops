@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: despachos-service
+  namespace: proyecto
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: despachos-service
+
+  template:
+    metadata:
+      labels:
+        app: despachos-service
+
+    spec:
+      containers:
+      - name: despachos-service
+        image: 934438538002.dkr.ecr.us-east-1.amazonaws.com/despachos-service:latest
+
+        ports:
+        - containerPort: 8081
+
+        env:
+        - name: DB_ENDPOINT
+          value: mysql
+
+        - name: DB_PORT
+          value: "3306"
+
+        - name: DB_NAME
+          value: proyectodb
+
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD

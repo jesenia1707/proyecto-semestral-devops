@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ventas-service
+  namespace: proyecto
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: ventas-service
+
+  template:
+    metadata:
+      labels:
+        app: ventas-service
+
+    spec:
+      containers:
+      - name: ventas-service
+        image: 934438538002.dkr.ecr.us-east-1.amazonaws.com/ventas-service:latest
+
+        ports:
+        - containerPort: 8080
+
+        env:
+        - name: DB_ENDPOINT
+          value: mysql
+
+        - name: DB_PORT
+          value: "3306"
+
+        - name: DB_NAME
+          value: proyectodb
+
+        - name: DB_USERNAME
+          value: proyecto
+
+        - name: DB_PASSWORD
+          value: proyecto123
+
+        imagePullPolicy: Always
