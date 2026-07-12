@@ -1,0 +1,62 @@
+name: CI/CD Proyecto DevOps
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-east-1
+      AWS_ACCOUNT_ID: 934438538002
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Compilar Ventas
+        working-directory: ./back-Ventas_SpringBoot
+        run: mvn clean package -DskipTests
+
+      - name: Compilar Despachos
+        working-directory: ./back-Despachos_SpringBoot
+        run: mvn clean package -DskipTests
+
+      - name: Configurar credenciales AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Construir imagen Ventas
+        run: |
+          docker build -t ventas-service:latest ./back-Ventas_SpringBoot
+          docker tag ventas-service:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ventas-service:latest
+
+      - name: Construir imagen Despachos
+        run: |
+          docker build -t despachos-service:latest ./back-Despachos_SpringBoot
+          docker tag despachos-service:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/despachos-service:latest
+
+      - name: Publicar imagen Ventas
+        run: |
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ventas-service:latest
+
+      - name: Publicar imagen Despachos
+        run: |
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/despachos-service:latest
+        
