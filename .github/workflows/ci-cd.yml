@@ -109,4 +109,9 @@ jobs:
         run: |
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/despachos-service:${{ github.sha }}
           docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/despachos-service:latest
+
+      - name: Probar acceso a EKS
+        run: |
+         aws eks update-kubeconfig --region us-east-1 --name eks-proyecto
+         kubectl get nodes
 #
